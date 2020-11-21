@@ -13,6 +13,13 @@ fastify.get('/', async (request, reply) => {
     return { hello: 'world' };
 });
 
+// Simulate crash
+if (cluster.isWorker) {
+    setTimeout(() => {
+        process.exit(1) // death by random timeout
+    }, Math.random() * 100000);
+}
+
 // Run the server!
 const start = async () => {
     try {
@@ -32,6 +39,9 @@ if (clusterWorkerSize > 1) {
 
         cluster.on("exit", function(worker, code, signal) {
             console.log("Worker", worker.id, "has exited with signal", signal);
+            if (code !== 0 && !worker.exitedAfterDisconnect) {
+                cluster.fork();
+            }
         });
     } else {
         start();
